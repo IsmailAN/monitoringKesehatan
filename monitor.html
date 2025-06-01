@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Monitor Kesehatan</title>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 30px;
+    }
+    h1 { color: #2c3e50; }
+    .data-box {
+      display: inline-block;
+      border: 2px solid #3498db;
+      padding: 20px;
+      border-radius: 15px;
+      margin-top: 20px;
+    }
+    .label { font-weight: bold; }
+    .value { font-size: 28px; color: #e74c3c; }
+  </style>
+</head>
+<body>
+
+  <h1>Data Monitoring Kesehatan</h1>
+  <div class="data-box">
+    <p class="label">Detak Jantung (BPM):</p>
+    <p class="value" id="bpm">--</p>
+    <p class="label">Aktivitas:</p>
+    <p class="value" id="aktivitas">--</p>
+  </div>
+
+  <script>
+    const dbURL = "https://fittrack-4818e-default-rtdb.firebaseio.com/data.json"; // Ganti dengan punyamu
+
+    async function ambilData() {
+      try {
+        const response = await fetch(dbURL);
+        const data = await response.json();
+
+        document.getElementById("bpm").textContent = data.bpm || "--";
+        document.getElementById("aktivitas").textContent = data.aktivitas || "--";
+      } catch (err) {
+        console.error("Gagal ambil data:", err);
+      }
+    }
+
+    ambilData(); // Ambil pertama kali
+    setInterval(ambilData, 2000); // Ambil tiap 2 detik
+  </script>
+
+</body>
+</html>
