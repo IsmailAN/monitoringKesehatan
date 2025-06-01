@@ -3,11 +3,13 @@
 <head>
   <title>Monitor Kesehatan</title>
   <meta charset="UTF-8">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
       padding: 30px;
+      background-color: #f7f7f7;
     }
     h1 { color: #2c3e50; }
     .data-box {
@@ -16,9 +18,15 @@
       padding: 20px;
       border-radius: 15px;
       margin-top: 20px;
+      background-color: #fff;
     }
     .label { font-weight: bold; }
     .value { font-size: 28px; color: #e74c3c; }
+    #grafikContainer {
+      width: 90%;
+      max-width: 600px;
+      margin: 40px auto;
+    }
   </style>
 </head>
 <body>
@@ -31,23 +39,81 @@
     <p class="value" id="aktivitas">--</p>
   </div>
 
+  <div id="grafikContainer">
+    <canvas id="grafikBPM"></canvas>
+  </div>
+
   <script>
-    const dbURL = "https://fittrack-4818e-default-rtdb.firebaseio.com/data.json"; // Ganti dengan punyamu
+    const dbURL = "https://fittrack-4818e-default-rtdb.firebaseio.com/data.json";
+
+    // Chart.js setup
+    const ctx = document.getElementById('grafikBPM').getContext('2d');
+    const dataBPM = {
+      labels: [],
+      datasets: [{
+        label: 'BPM',
+        data: [],
+        borderColor: '#3498db',
+        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+        tension: 0.3
+      }]
+    };
+    const opsi = {
+      responsive: true,
+      scales: {
+        x: { title: { display: true, text: 'Waktu' } },
+        y: { min: 40, max: 180, title: { display: true, text: 'BPM' } }
+      }
+    };
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: dataBPM,
+      options: opsi
+    });
+
+    // Minta izin notifikasi
+    if (Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
 
     async function ambilData() {
       try {
         const response = await fetch(dbURL);
         const data = await response.json();
 
-        document.getElementById("bpm").textContent = data.bpm || "--";
-        document.getElementById("aktivitas").textContent = data.aktivitas || "--";
+        const bpm = data.bpm || "--";
+        const aktivitas = data.aktivitas || "--";
+
+        document.getElementById("bpm").textContent = bpm;
+        document.getElementById("aktivitas").textContent = aktivitas;
+
+        // Notifikasi kalau BPM tinggi
+        if (bpm !== "--" && Number(bpm) > 120) {
+          if (Notification.permission === "granted") {
+            new Notification("⚠️ Detak Jantung Tinggi!", {
+              body: `BPM kamu ${bpm}, istirahat dulu bro!`,
+              icon: "https://cdn-icons-png.flaticon.com/512/4290/4290854.png"
+            });
+          }
+        }
+
+        // Update grafik
+        const waktu = new Date().toLocaleTimeString();
+        if (dataBPM.labels.length > 10) {
+          dataBPM.labels.shift();
+          dataBPM.datasets[0].data.shift();
+        }
+        dataBPM.labels.push(waktu);
+        dataBPM.datasets[0].data.push(Number(bpm));
+        chart.update();
+
       } catch (err) {
         console.error("Gagal ambil data:", err);
       }
     }
 
-    ambilData(); // Ambil pertama kali
-    setInterval(ambilData, 2000); // Ambil tiap 2 detik
+    ambilData(); // Pertama kali
+    setInterval(ambilData, 2000); // Tiap 2 detik ambil data
   </script>
 
 </body>
